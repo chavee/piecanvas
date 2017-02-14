@@ -251,10 +251,6 @@
 			console.log('Connected...');
 		});
 
-		microgear.on('disconnected', function() {
-			alert('hey');
-		});
-
 		microgear.on('present', function(m) {
 			if (m.type=='online' && m.alias != myID) {
 				if (member.indexOf(m.alias)==-1) member.push(m.alias);
