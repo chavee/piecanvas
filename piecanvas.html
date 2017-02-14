@@ -48,7 +48,7 @@
 		var tg = toolCanvas.getContext("2d");
 		var toolCanvasRect = toolCanvas.getBoundingClientRect();
 
-		toolCanvas.addEventListener('mousedown', function(e){
+		function onToolDown(e) {
 			mX = e.pageX - toolCanvasRect.left;
 			mY = e.pageY - toolCanvasRect.top;
 
@@ -83,9 +83,9 @@
 					drawToolBar();
 				}
 			}
-		});
+		}
 
-		drawCanvas.addEventListener('mousedown', function(e){
+		function onPenDown(e) {
 			mX = e.pageX - drawCanvasRect.left;
 			mY = e.pageY - drawCanvasRect.top;
 
@@ -93,13 +93,13 @@
 				dg.moveTo(mX,mY);
 				drawMode = 1;
 			}
-		});
+		}
 
-		drawCanvas.addEventListener('mouseup', function(e){
+		function onPenUp(e) {
 		  drawMode = 0;
-		});
+		}
 
-		drawCanvas.addEventListener('mousemove', function(e){
+		function onPenMove(e) {
 		  if (drawMode == 1) {
 			  dg.beginPath();				
 			  dg.lineWidth = lineWidth;
@@ -113,14 +113,21 @@
 			  dg.lineTo(mX,mY);
 			  dg.stroke();
 			  drawBuffer += mX+','+mY+';';
-		  }
-		});
 
-		var microgear = Microgear.create({
-			key: APPKEY,
-			secret: APPSECRET,
-			alias : myID
-		});
+			  if (e.target == drawCanvas) {
+			    e.preventDefault();
+			  }
+		  }
+		}
+
+		toolCanvas.addEventListener('touchstart', onToolDown);
+		toolCanvas.addEventListener('mousedown', onToolDown);
+		drawCanvas.addEventListener('touchstart', onPenDown);
+		drawCanvas.addEventListener('mousedown', onPenDown);
+		drawCanvas.addEventListener('touchend', onPenUp);
+		drawCanvas.addEventListener('mouseup', onPenUp);
+		drawCanvas.addEventListener('touchmove', onPenMove);
+		drawCanvas.addEventListener('mousemove', onPenMove);
 
 		function drawToolBar() {
 
@@ -190,6 +197,36 @@
 			}
 		}
 
+		function drawHeart(x,y,phase,style) {
+			tg.beginPath();
+			tg.fillStyle = '#ffffff';
+			tg.fillRect(x-25,y-25,50,50);
+			if (style==0) return;
+			tg.beginPath();
+			tg.lineWidth = 2;
+			tg.strokeStyle = '#cccccc';
+			tg.fillStyle = '#ff6644';
+			for (var t=0; t<2*Math.PI; t+=0.2) {
+				var k = 1.5*Math.exp(-10*Math.pow(0.5-phase,2));
+				var px = (17-k)*Math.pow(Math.sin(t),3);
+				var py = 3*k+(10+k)*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
+				tg.lineTo(x+px, y-py);
+			}
+			style==2?tg.fill():tg.stroke();
+		}
+		var phase = 0;
+		setInterval(function() {
+			if (member.length > 0) phase = phase>1?0:phase+0.1;
+			drawHeart(toolOffset3+3*(BTNSIZE+BTNGAP)+30,20,phase, microgear.connected()?member.length>0?2:1:0 );
+		},50);
+
+
+		var microgear = Microgear.create({
+			key: APPKEY,
+			secret: APPSECRET,
+			alias : myID
+		});
+
 		microgear.on('message',function(topic,msg) {
 			if (topic == '/'+APPID+'/draw/'+myID) return;
 			var dlist = msg.split(';');
@@ -230,31 +267,6 @@
 
 		drawToolBar();
 		microgear.connect(APPID);
-
-		function drawHeart(x,y,phase,style) {
-			tg.beginPath();
-			tg.fillStyle = '#ffffff';
-			tg.fillRect(x-25,y-25,50,50);
-			if (style==0) return;
-			tg.beginPath();
-			tg.lineWidth = 2;
-			tg.strokeStyle = '#cccccc';
-			tg.fillStyle = '#ff6644';
-			for (var t=0; t<2*Math.PI; t+=0.2) {
-				var k = 1.5*Math.exp(-10*Math.pow(0.5-phase,2));
-				var px = (17-k)*Math.pow(Math.sin(t),3);
-				var py = 3*k+(10+k)*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t);
-				tg.lineTo(x+px, y-py);
-			}
-			style==2?tg.fill():tg.stroke();
-		}
-
-
-		var phase = 0;
-		setInterval(function() {
-			if (member.length > 0) phase = phase>1?0:phase+0.1;
-			drawHeart(toolOffset3+3*(BTNSIZE+BTNGAP)+30,20,phase, microgear.connected()?member.length>0?2:1:0 );
-		},50);
 
 		setInterval(function() {
 			if (recMode != 2) {
